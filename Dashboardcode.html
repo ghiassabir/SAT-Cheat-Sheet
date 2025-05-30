@@ -1,0 +1,282 @@
+import React, { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { ChevronDown, TrendingUp, BookOpen, Target, ListChecks, Clock, CheckCircle, XCircle, Edit3, BarChart2 } from 'lucide-react';
+
+// Mock Data
+const initialStudentData = {
+  name: "Alex Johnson",
+  overallScore: 1350, // Max 1600
+  verbalScore: 670, // Max 800
+  mathScore: 680, // Max 800
+  testsTaken: 5,
+  quizzesCompleted: 12,
+  averageQuizScore: 85, // Percentage
+  practiceTests: [
+    { id: 1, date: "2025-03-01", verbal: 620, math: 600, total: 1220, type: "Practice Test 1" },
+    { id: 2, date: "2025-03-15", verbal: 650, math: 640, total: 1290, type: "Practice Test 2" },
+    { id: 3, date: "2025-04-01", verbal: 660, math: 670, total: 1330, type: "Practice Test 3" },
+    { id: 4, date: "2025-04-15", verbal: 670, math: 680, total: 1350, type: "Practice Test 4 (Full)" },
+    { id: 5, date: "2025-05-01", verbal: 680, math: 700, total: 1380, type: "Practice Test 5" },
+  ],
+  quizzes: [
+    { id: 1, name: "Math Module 1 Quiz", score: 80, totalQuestions: 20, correctAnswers: 16, date: "2025-04-20" },
+    { id: 2, name: "Reading Comprehension Drill", score: 90, totalQuestions: 15, correctAnswers: 13.5, date: "2025-04-22" },
+    { id: 3, name: "Writing & Language Practice", score: 75, totalQuestions: 20, correctAnswers: 15, date: "2025-04-24" },
+    { id: 4, name: "Math Module 2 Challenge", score: 95, totalQuestions: 22, correctAnswers: 20.9, date: "2025-04-28" },
+    { id: 5, name: "Advanced Vocab Quiz", score: 88, totalQuestions: 25, correctAnswers: 22, date: "2025-05-02" },
+  ],
+  strengths: ["Algebra", "Standard English Conventions"],
+  weaknesses: ["Geometry", "Words in Context", "Problem Solving & Data Analysis (Advanced)"],
+  timeSpent: {
+    readingWriting: 120, // hours
+    math: 150, // hours
+  }
+};
+
+// Helper to format date
+const formatDate = (dateString) => {
+  const options = { year: 'numeric', month: 'short', day: 'numeric' };
+  return new Date(dateString).toLocaleDateString(undefined, options);
+};
+
+const App = () => {
+  const [studentData, setStudentData] = useState(initialStudentData);
+  const [activeTab, setActiveTab] = useState('overview'); // overview, practiceTests, quizzes
+
+  // Calculate score progress for the chart
+  const scoreProgressData = studentData.practiceTests.map(test => ({
+    name: test.type.split(" ")[0] + " " + test.type.split(" ")[1], // e.g., "Practice 1"
+    Total: test.total,
+    Verbal: test.verbal,
+    Math: test.math,
+  }));
+
+  const SectionPerformanceChart = ({ verbal, math }) => {
+    const data = [
+      { name: 'Reading & Writing', score: verbal, fill: '#8884d8' },
+      { name: 'Math', score: math, fill: '#82ca9d' },
+    ];
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} layout="vertical" margin={{ top: 20, right: 30, left: 30, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis type="number" domain={[0, 800]} ticks={[0, 200, 400, 600, 800]} />
+          <YAxis dataKey="name" type="category" width={120} />
+          <Tooltip formatter={(value) => `${value} / 800`} />
+          <Legend />
+          <Bar dataKey="score" name="Score" barSize={30} radius={[0, 10, 10, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
+  
+  const ScoreTrendChart = ({ data }) => (
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" />
+        <YAxis domain={[1000, 1600]} ticks={[1000, 1200, 1400, 1600]} />
+        <Tooltip />
+        <Legend />
+        <Line type="monotone" dataKey="Total" stroke="#8884d8" strokeWidth={2} activeDot={{ r: 8 }} />
+        <Line type="monotone" dataKey="Verbal" stroke="#82ca9d" strokeWidth={2} />
+        <Line type="monotone" dataKey="Math" stroke="#ffc658" strokeWidth={2} />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+
+  const Card = ({ title, value, icon, subValue, colorClass = "text-blue-500" }) => (
+    <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-lg font-semibold text-gray-600">{title}</h3>
+        {icon && React.createElement(icon, { className: `w-8 h-8 ${colorClass}` })}
+      </div>
+      <p className={`text-3xl font-bold ${colorClass}`}>{value}</p>
+      {subValue && <p className="text-sm text-gray-500 mt-1">{subValue}</p>}
+    </div>
+  );
+  
+  const TabButton = ({ label, tabName }) => (
+    <button
+      onClick={() => setActiveTab(tabName)}
+      className={`px-4 py-2 font-medium rounded-md transition-colors duration-200
+                  ${activeTab === tabName ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-sky-100 p-4 sm:p-6 md:p-8 font-inter">
+      <header className="mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-center">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">
+            SAT Performance Dashboard
+          </h1>
+          <div className="flex items-center mt-4 sm:mt-0 bg-white p-3 rounded-lg shadow">
+            <img 
+              src={`https://placehold.co/40x40/E2E8F0/4A5568?text=${studentData.name.substring(0,1)}`} 
+              alt="Student Avatar" 
+              className="w-10 h-10 rounded-full mr-3 border-2 border-blue-500"
+              onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/40x40/E2E8F0/4A5568?text=S"; }}
+            />
+            <div>
+              <span className="font-semibold text-gray-700">{studentData.name}</span>
+              <p className="text-xs text-gray-500">Digital SAT Student</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Navigation Tabs */}
+      <nav className="mb-6 flex space-x-2 sm:space-x-4 border-b border-gray-300 pb-3">
+        <TabButton label="Overview" tabName="overview" />
+        <TabButton label="Practice Tests" tabName="practiceTests" />
+        <TabButton label="Quizzes" tabName="quizzes" />
+      </nav>
+
+      {/* Overview Tab Content */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card title="Overall Score" value={studentData.overallScore} subValue="/ 1600" icon={TrendingUp} colorClass="text-indigo-600" />
+            <Card title="Verbal Score" value={studentData.verbalScore} subValue="/ 800" icon={BookOpen} colorClass="text-purple-600" />
+            <Card title="Math Score" value={studentData.mathScore} subValue="/ 800" icon={Target} colorClass="text-teal-600" />
+            <Card title="Avg. Quiz Score" value={`${studentData.averageQuizScore}%`} icon={ListChecks} colorClass="text-amber-600" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                <BarChart2 className="w-6 h-6 mr-2 text-blue-500" /> Score Trend (Practice Tests)
+              </h2>
+              <ScoreTrendChart data={scoreProgressData} />
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-700 mb-4">Section Performance</h2>
+              <SectionPerformanceChart verbal={studentData.verbalScore} math={studentData.mathScore} />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-700 mb-4">Strengths</h2>
+              <ul className="space-y-2">
+                {studentData.strengths.map((strength, index) => (
+                  <li key={index} className="flex items-center text-gray-600">
+                    <CheckCircle className="w-5 h-5 mr-2 text-green-500" /> {strength}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-lg">
+              <h2 className="text-xl font-semibold text-gray-700 mb-4">Areas for Improvement</h2>
+              <ul className="space-y-2">
+                {studentData.weaknesses.map((weakness, index) => (
+                  <li key={index} className="flex items-center text-gray-600">
+                    <XCircle className="w-5 h-5 mr-2 text-red-500" /> {weakness}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                <Clock className="w-6 h-6 mr-2 text-blue-500" /> Time Spent Studying
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <p className="text-gray-500">Reading & Writing</p>
+                    <p className="text-2xl font-semibold text-purple-600">{studentData.timeSpent.readingWriting} hours</p>
+                </div>
+                <div>
+                    <p className="text-gray-500">Math</p>
+                    <p className="text-2xl font-semibold text-teal-600">{studentData.timeSpent.math} hours</p>
+                </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Practice Tests Tab Content */}
+      {activeTab === 'practiceTests' && (
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-6">Practice Test History</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max text-left">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="p-3 text-sm font-semibold text-gray-500">Test Name</th>
+                  <th className="p-3 text-sm font-semibold text-gray-500">Date</th>
+                  <th className="p-3 text-sm font-semibold text-gray-500">Verbal</th>
+                  <th className="p-3 text-sm font-semibold text-gray-500">Math</th>
+                  <th className="p-3 text-sm font-semibold text-gray-500">Total Score</th>
+                  <th className="p-3 text-sm font-semibold text-gray-500">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {studentData.practiceTests.slice().reverse().map(test => ( // Show most recent first
+                  <tr key={test.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="p-3 text-gray-700 font-medium">{test.type}</td>
+                    <td className="p-3 text-gray-600">{formatDate(test.date)}</td>
+                    <td className="p-3 text-gray-600">{test.verbal}</td>
+                    <td className="p-3 text-gray-600">{test.math}</td>
+                    <td className="p-3 text-blue-600 font-bold">{test.total}</td>
+                    <td className="p-3">
+                      <button className="text-blue-500 hover:text-blue-700 flex items-center text-sm">
+                        <Edit3 size={16} className="mr-1" /> Review
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Quizzes Tab Content */}
+      {activeTab === 'quizzes' && (
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-6">Quiz History</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-max text-left">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="p-3 text-sm font-semibold text-gray-500">Quiz Name</th>
+                  <th className="p-3 text-sm font-semibold text-gray-500">Date</th>
+                  <th className="p-3 text-sm font-semibold text-gray-500">Score (%)</th>
+                  <th className="p-3 text-sm font-semibold text-gray-500">Correct / Total</th>
+                  <th className="p-3 text-sm font-semibold text-gray-500">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {studentData.quizzes.slice().reverse().map(quiz => ( // Show most recent first
+                  <tr key={quiz.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="p-3 text-gray-700 font-medium">{quiz.name}</td>
+                    <td className="p-3 text-gray-600">{formatDate(quiz.date)}</td>
+                    <td className="p-3 text-blue-600 font-bold">{quiz.score}%</td>
+                    <td className="p-3 text-gray-600">{quiz.correctAnswers.toFixed(1)} / {quiz.totalQuestions}</td>
+                     <td className="p-3">
+                      <button className="text-blue-500 hover:text-blue-700 flex items-center text-sm">
+                        <Edit3 size={16} className="mr-1" /> Review
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
+      <footer className="mt-12 text-center text-sm text-gray-500">
+        <p>&copy; {new Date().getFullYear()} SAT Prep Dashboard. All rights reserved.</p>
+        <p>This is a sample dashboard for demonstration purposes.</p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
