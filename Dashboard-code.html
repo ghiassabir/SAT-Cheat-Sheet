@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Performance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0; /* Ensure no default body margin */
+        }
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+        }
+        .table-responsive::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* cool-gray-300 */
+            border-radius: 4px;
+        }
+        .table-responsive::-webkit-scrollbar-track {
+            background-color: #f1f5f9; /* cool-gray-100 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px; 
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 250px;
+            }
+        }
+        /* Ensure icons are sized correctly if they don't have explicit w/h via tailwind */
+        .icon-sm { width: 1.25rem; height: 1.25rem; } /* 20px */
+        .icon-md { width: 1.5rem; height: 1.5rem; } /* 24px */
+        .icon-lg { width: 2rem; height: 2rem; } /* 32px */
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-100 to-sky-100 p-4 sm:p-6 md:p-8">
+
+    <div id="dashboard-root-container">
+        <header class="mb-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center">
+                <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">
+                    SAT Performance Dashboard
+                </h1>
+                <div id="student-info-header" class="flex items-center mt-4 sm:mt-0 bg-white p-3 rounded-lg shadow">
+                    </div>
+            </div>
+        </header>
+
+        <nav class="mb-6 flex space-x-2 sm:space-x-4 border-b border-gray-300 pb-3">
+            <button data-tab="overview" class="tab-button px-4 py-2 font-medium rounded-md transition-colors duration-200 bg-blue-600 text-white shadow-md">Overview</button>
+            <button data-tab="practiceTests" class="tab-button px-4 py-2 font-medium rounded-md transition-colors duration-200 bg-gray-200 text-gray-700 hover:bg-gray-300">Practice Tests</button>
+            <button data-tab="quizzes" class="tab-button px-4 py-2 font-medium rounded-md transition-colors duration-200 bg-gray-200 text-gray-700 hover:bg-gray-300">Quizzes</button>
+        </nav>
+
+        <div id="tab-content-area">
+            <div id="overview-content" class="tab-pane space-y-6">
+                <div id="overview-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                            <span class="icon-md mr-2 text-blue-500" id="barchart2-icon-placeholder"></span> Score Trend (Practice Tests)
+                        </h2>
+                        <div class="chart-container">
+                            <canvas id="scoreTrendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Section Performance</h2>
+                        <div class="chart-container">
+                            <canvas id="sectionPerformanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Strengths</h2>
+                        <ul id="strengths-list" class="space-y-2">
+                            </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold text-gray-700 mb-4">Areas for Improvement</h2>
+                        <ul id="weaknesses-list" class="space-y-2">
+                            </ul>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                        <span class="icon-md mr-2 text-blue-500" id="clock-icon-placeholder"></span> Time Spent Studying
+                    </h2>
+                    <div id="time-spent-details" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        </div>
+                </div>
+            </div>
+
+            <div id="practiceTests-content" class="tab-pane hidden bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-6">Practice Test History</h2>
+                <div class="overflow-x-auto table-responsive">
+                    <table class="w-full min-w-max text-left">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="p-3 text-sm font-semibold text-gray-500">Test Name</th>
+                                <th class="p-3 text-sm font-semibold text-gray-500">Date</th>
+                                <th class="p-3 text-sm font-semibold text-gray-500">Verbal</th>
+                                <th class="p-3 text-sm font-semibold text-gray-500">Math</th>
+                                <th class="p-3 text-sm font-semibold text-gray-500">Total Score</th>
+                                <th class="p-3 text-sm font-semibold text-gray-500">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="practiceTests-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="quizzes-content" class="tab-pane hidden bg-white p-4 sm:p-6 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-6">Quiz History</h2>
+                <div class="overflow-x-auto table-responsive">
+                    <table class="w-full min-w-max text-left">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="p-3 text-sm font-semibold text-gray-500">Quiz Name</th>
+                                <th class="p-3 text-sm font-semibold text-gray-500">Date</th>
+                                <th class="p-3 text-sm font-semibold text-gray-500">Score (%)</th>
+                                <th class="p-3 text-sm font-semibold text-gray-500">Correct / Total</th>
+                                <th class="p-3 text-sm font-semibold text-gray-500">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="quizzes-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center text-sm text-gray-500">
+            <p>&copy; <span id="current-year"></span> SAT Prep Dashboard. All rights reserved.</p>
+            <p>This is a sample dashboard for demonstration purposes.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const studentData = {
+            name: "Alex Johnson",
+            overallScore: 1350, // Max 1600
+            verbalScore: 670, // Max 800
+            mathScore: 680, // Max 800
+            testsTaken: 5,
+            quizzesCompleted: 12,
+            averageQuizScore: 85, // Percentage
+            practiceTests: [
+                { id: 1, date: "2025-03-01", verbal: 620, math: 600, total: 1220, type: "Practice Test 1" },
+                { id: 2, date: "2025-03-15", verbal: 650, math: 640, total: 1290, type: "Practice Test 2" },
+                { id: 3, date: "2025-04-01", verbal: 660, math: 670, total: 1330, type: "Practice Test 3" },
+                { id: 4, date: "2025-04-15", verbal: 670, math: 680, total: 1350, type: "Practice Test 4 (Full)" },
+                { id: 5, date: "2025-05-01", verbal: 680, math: 700, total: 1380, type: "Practice Test 5" },
+            ],
+            quizzes: [
+                { id: 1, name: "Math Module 1 Quiz", score: 80, totalQuestions: 20, correctAnswers: 16, date: "2025-04-20" },
+                { id: 2, name: "Reading Comprehension Drill", score: 90, totalQuestions: 15, correctAnswers: 13.5, date: "2025-04-22" },
+                { id: 3, name: "Writing & Language Practice", score: 75, totalQuestions: 20, correctAnswers: 15, date: "2025-04-24" },
+                { id: 4, name: "Math Module 2 Challenge", score: 95, totalQuestions: 22, correctAnswers: 20.9, date: "2025-04-28" },
+                { id: 5, name: "Advanced Vocab Quiz", score: 88, totalQuestions: 25, correctAnswers: 22, date: "2025-05-02" },
+            ],
+            strengths: ["Algebra", "Standard English Conventions"],
+            weaknesses: ["Geometry", "Words in Context", "Problem Solving & Data Analysis (Advanced)"],
+            timeSpent: {
+                readingWriting: 120, // hours
+                math: 150, // hours
+            }
+        };
+
+        // --- ICONS (Inline SVGs as strings) ---
+        const icons = {
+            trendingUp: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>`,
+            bookOpen: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>`,
+            target: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`,
+            listChecks: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="17" x2="21" y2="17"></line><line x1="10" y1="12" x2="21" y2="12"></line><line x1="10" y1="7" x2="21" y2="7"></line><path d="M3 17l2 2 4-4"></path><path d="M3 12l2 2 4-4"></path><path d="M3 7l2 2 4-4"></path></svg>`,
+            clock: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
+            checkCircle: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2 text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`,
+            xCircle: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mr-2 text-red-500"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`,
+            edit3: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`,
+            barChart2: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>`
+        };
+        
+        // --- HELPERS ---
+        const formatDate = (dateString) => {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        };
+
+        // --- DOM ELEMENTS ---
+        // (Get elements within DOMContentLoaded to ensure they exist)
+        let studentInfoHeaderEl, overviewCardsContainerEl, strengthsListEl, weaknessesListEl,
+            timeSpentDetailsEl, practiceTestsTableBodyEl, quizzesTableBodyEl, currentYearEl,
+            scoreTrendChartEl, sectionPerformanceChartEl, tabButtons, tabPanes,
+            barchart2IconPlaceholderEl, clockIconPlaceholderEl;
+
+        // Chart instances
+        let scoreTrendChartInstance, sectionPerformanceChartInstance;
+        
+        // --- RENDER FUNCTIONS ---
+        function renderStudentHeader() {
+            if (!studentInfoHeaderEl) return;
+            studentInfoHeaderEl.innerHTML = `
+                <img 
+                  src="https://placehold.co/40x40/E2E8F0/4A5568?text=${studentData.name.substring(0,1)}" 
+                  alt="Student Avatar" 
+                  class="w-10 h-10 rounded-full mr-3 border-2 border-blue-500"
+                  onerror="this.onerror=null; this.src='https://placehold.co/40x40/E2E8F0/4A5568?text=S';"
+                />
+                <div>
+                  <span class="font-semibold text-gray-700">${studentData.name}</span>
+                  <p class="text-xs text-gray-500">Digital SAT Student</p>
+                </div>`;
+        }
+
+        function renderOverviewCards() {
+            if (!overviewCardsContainerEl) return;
+            const cardsData = [
+                { title: "Overall Score", value: studentData.overallScore, subValue: "/ 1600", iconKey: "trendingUp", colorClass: "text-indigo-600" },
+                { title: "Verbal Score", value: studentData.verbalScore, subValue: "/ 800", iconKey: "bookOpen", colorClass: "text-purple-600" },
+                { title: "Math Score", value: studentData.mathScore, subValue: "/ 800", iconKey: "target", colorClass: "text-teal-600" },
+                { title: "Avg. Quiz Score", value: `${studentData.averageQuizScore}%`, iconKey: "listChecks", colorClass: "text-amber-600" }
+            ];
+            overviewCardsContainerEl.innerHTML = cardsData.map(card => `
+                <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-lg font-semibold text-gray-600">${card.title}</h3>
+                        <div class="w-8 h-8 ${card.colorClass}">${icons[card.iconKey] || ''}</div>
+                    </div>
+                    <p class="text-3xl font-bold ${card.colorClass}">${card.value}</p>
+                    ${card.subValue ? `<p class="text-sm text-gray-500 mt-1">${card.subValue}</p>` : ''}
+                </div>`).join('');
+        }
+
+        function renderLists() {
+            if (strengthsListEl) {
+                strengthsListEl.innerHTML = studentData.strengths.map(strength => `
+                    <li class="flex items-center text-gray-600">${icons.checkCircle} ${strength}</li>`).join('');
+            }
+            if (weaknessesListEl) {
+                weaknessesListEl.innerHTML = studentData.weaknesses.map(weakness => `
+                    <li class="flex items-center text-gray-600">${icons.xCircle} ${weakness}</li>`).join('');
+            }
+        }
+        
+        function renderTimeSpent() {
+            if (!timeSpentDetailsEl) return;
+            timeSpentDetailsEl.innerHTML = `
+                <div>
+                    <p class="text-gray-500">Reading & Writing</p>
+                    <p class="text-2xl font-semibold text-purple-600">${studentData.timeSpent.readingWriting} hours</p>
+                </div>
+                <div>
+                    <p class="text-gray-500">Math</p>
+                    <p class="text-2xl font-semibold text-teal-600">${studentData.timeSpent.math} hours</p>
+                </div>`;
+        }
+
+        function renderScoreTrendChart() {
+            if (!scoreTrendChartEl || typeof Chart === 'undefined') return;
+            const ctx = scoreTrendChartEl.getContext('2d');
+            const chartData = studentData.practiceTests.map(test => ({
+                name: test.type.split(" ").slice(0, 2).join(" "),
+                Total: test.total, Verbal: test.verbal, Math: test.math,
+            }));
+
+            if(scoreTrendChartInstance) scoreTrendChartInstance.destroy();
+            scoreTrendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.map(d => d.name),
+                    datasets: [
+                        { label: 'Total', data: chartData.map(d => d.Total), borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)', fill: false, tension: 0.3, borderWidth: 2 },
+                        { label: 'Verbal', data: chartData.map(d => d.Verbal), borderColor: '#82ca9d', backgroundColor: 'rgba(130, 202, 157, 0.1)', fill: false, tension: 0.3, borderWidth: 2 },
+                        { label: 'Math', data: chartData.map(d => d.Math), borderColor: '#ffc658', backgroundColor: 'rgba(255, 198, 88, 0.1)', fill: false, tension: 0.3, borderWidth: 2 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, min: Math.min(...chartData.map(d => d.Total)) - 100 > 0 ? Math.min(...chartData.map(d => d.Total)) - 50 : 1000, max: 1600, ticks: { stepSize: 200 }}, x: { grid: { display: false }}}, plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false }}}
+            });
+        }
+
+        function renderSectionPerformanceChart() {
+            if (!sectionPerformanceChartEl || typeof Chart === 'undefined') return;
+            const ctx = sectionPerformanceChartEl.getContext('2d');
+            const chartData = [ { name: 'Reading & Writing', score: studentData.verbalScore, color: '#8884d8' }, { name: 'Math', score: studentData.mathScore, color: '#82ca9d' }];
+            
+            if(sectionPerformanceChartInstance) sectionPerformanceChartInstance.destroy();
+            sectionPerformanceChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: chartData.map(d => d.name), datasets: [{ label: 'Score', data: chartData.map(d => d.score), backgroundColor: chartData.map(d => d.color), borderRadius: { topRight: 10, bottomRight: 10, topLeft:0, bottomLeft:0 }, barPercentage: 0.6, categoryPercentage: 0.7 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, max: 800, ticks: { stepSize: 200 }}, y: { grid: { display: false }}}, plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(context) { return `${context.dataset.label}: ${context.raw} / 800`; }}}}}
+            });
+        }
+
+        function renderPracticeTestsTable() {
+            if (!practiceTestsTableBodyEl) return;
+            practiceTestsTableBodyEl.innerHTML = studentData.practiceTests.slice().reverse().map(test => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td class="p-3 text-gray-700 font-medium">${test.type}</td> <td class="p-3 text-gray-600">${formatDate(test.date)}</td> <td class="p-3 text-gray-600">${test.verbal}</td>
+                    <td class="p-3 text-gray-600">${test.math}</td> <td class="p-3 text-blue-600 font-bold">${test.total}</td>
+                    <td class="p-3"><button class="text-blue-500 hover:text-blue-700 flex items-center text-sm">${icons.edit3} Review</button></td>
+                </tr>`).join('');
+        }
+
+        function renderQuizzesTable() {
+            if (!quizzesTableBodyEl) return;
+            quizzesTableBodyEl.innerHTML = studentData.quizzes.slice().reverse().map(quiz => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td class="p-3 text-gray-700 font-medium">${quiz.name}</td> <td class="p-3 text-gray-600">${formatDate(quiz.date)}</td> <td class="p-3 text-blue-600 font-bold">${quiz.score}%</td>
+                    <td class="p-3 text-gray-600">${quiz.correctAnswers.toFixed(1)} / ${quiz.totalQuestions}</td>
+                    <td class="p-3"><button class="text-blue-500 hover:text-blue-700 flex items-center text-sm">${icons.edit3} Review</button></td>
+                </tr>`).join('');
+        }
+
+        // --- TAB SWITCHING ---
+        function setupTabs() {
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetTab = button.dataset.tab;
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+                        btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                    });
+                    button.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+                    button.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+
+                    tabPanes.forEach(pane => {
+                        if (pane.id === `${targetTab}-content`) pane.classList.remove('hidden');
+                        else pane.classList.add('hidden');
+                    });
+                    
+                    if (targetTab === 'overview') { // Re-render/resize charts if overview tab is activated
+                        setTimeout(() => {
+                            if (typeof Chart !== 'undefined') {
+                                 if (scoreTrendChartInstance) scoreTrendChartInstance.resize(); else renderScoreTrendChart();
+                                 if (sectionPerformanceChartInstance) sectionPerformanceChartInstance.resize(); else renderSectionPerformanceChart();
+                            }
+                        }, 50);
+                    }
+                });
+            });
+        }
+        
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Assign DOM elements
+            studentInfoHeaderEl = document.getElementById('student-info-header');
+            overviewCardsContainerEl = document.getElementById('overview-cards-container');
+            strengthsListEl = document.getElementById('strengths-list');
+            weaknessesListEl = document.getElementById('weaknesses-list');
+            timeSpentDetailsEl = document.getElementById('time-spent-details');
+            practiceTestsTableBodyEl = document.getElementById('practiceTests-table-body');
+            quizzesTableBodyEl = document.getElementById('quizzes-table-body');
+            currentYearEl = document.getElementById('current-year');
+            scoreTrendChartEl = document.getElementById('scoreTrendChart');
+            sectionPerformanceChartEl = document.getElementById('sectionPerformanceChart');
+            tabButtons = document.querySelectorAll('.tab-button');
+            tabPanes = document.querySelectorAll('.tab-pane');
+            barchart2IconPlaceholderEl = document.getElementById('barchart2-icon-placeholder');
+            clockIconPlaceholderEl = document.getElementById('clock-icon-placeholder');
+
+            // Inject static icons
+            if (barchart2IconPlaceholderEl) barchart2IconPlaceholderEl.innerHTML = icons.barChart2;
+            if (clockIconPlaceholderEl) clockIconPlaceholderEl.innerHTML = icons.clock;
+
+            // Render all dynamic content
+            renderStudentHeader();
+            renderOverviewCards();
+            renderLists();
+            renderTimeSpent();
+            renderPracticeTestsTable();
+            renderQuizzesTable();
+            if(currentYearEl) currentYearEl.textContent = new Date().getFullYear();
+
+            if (typeof Chart !== 'undefined') {
+                renderScoreTrendChart();
+                renderSectionPerformanceChart();
+            } else {
+                console.error("Chart.js not loaded. Charts will not be displayed.");
+                if (scoreTrendChartEl && scoreTrendChartEl.parentElement) scoreTrendChartEl.parentElement.innerHTML = "<p class='text-red-500 text-center'>Chart library not loaded.</p>";
+                if (sectionPerformanceChartEl && sectionPerformanceChartEl.parentElement) sectionPerformanceChartEl.parentElement.innerHTML = "<p class='text-red-500 text-center'>Chart library not loaded.</p>";
+            }
+            
+            setupTabs();
+        });
+    </script>
+</body>
+</html>
